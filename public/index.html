@@ -1,20 +1,107 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
-<head><meta charset="UTF-8"><title>Tarefas</title></head>
+<head>
+  <meta charset="UTF-8">
+  <title>Tarefas</title>
+</head>
 <body>
   <h1>Lista de Tarefas</h1>
+
   <form id="form">
     <input id="titulo" placeholder="Nova tarefa" required>
     <button type="submit">Adicionar</button>
   </form>
+
   <ul id="lista"></ul>
+
   <p id="erro" style="color:red"></p>
 
   <script>
     const api = 'http://localhost:3000/api/tarefas';
-    // TODO: ao carregar a página, busca as tarefas com fetch e exibe na lista
-    // TODO: ao submeter o formulário, envia POST com { titulo } e atualiza a lista
-    // TODO: erros de rede/API devem ser exibidos no elemento #erro
+
+    const form = document.getElementById('form');
+    const tituloInput = document.getElementById('titulo');
+    const lista = document.getElementById('lista');
+    const erro = document.getElementById('erro');
+
+    // Exibe as tarefas na lista
+    function exibirTarefas(tarefas) {
+      lista.innerHTML = '';
+
+      tarefas.forEach((tarefa) => {
+        const item = document.createElement('li');
+        item.textContent = tarefa.titulo;
+        lista.appendChild(item);
+      });
+    }
+
+    // Busca as tarefas ao carregar a página
+    async function carregarTarefas() {
+      try {
+        erro.textContent = '';
+
+        const resposta = await fetch(api);
+
+        if (!resposta.ok) {
+          throw new Error(`Erro na API: ${resposta.status}`);
+        }
+
+        const tarefas = await resposta.json();
+
+        exibirTarefas(tarefas);
+      } catch (error) {
+        console.error(error);
+        erro.textContent = `Não foi possível carregar as tarefas: ${error.message}`;
+      }
+    }
+
+    // Envia uma nova tarefa
+    form.addEventListener('submit', async (event) => {
+      event.preventDefault();
+
+      erro.textContent = '';
+
+      const titulo = tituloInput.value.trim();
+
+      if (!titulo) {
+        erro.textContent = 'Digite uma tarefa.';
+        return;
+      }
+
+      try {
+        const resposta = await fetch(api, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            titulo: titulo
+          })
+        });
+
+        const dados = await resposta.json();
+
+        if (!resposta.ok) {
+          throw new Error(dados.erro || `Erro na API: ${resposta.status}`);
+        }
+
+        // Adiciona a nova tarefa diretamente na lista
+        const item = document.createElement('li');
+        item.textContent = dados.titulo;
+        lista.appendChild(item);
+
+        // Limpa o campo
+        tituloInput.value = '';
+        tituloInput.focus();
+
+      } catch (error) {
+        console.error(error);
+        erro.textContent = `Não foi possível adicionar a tarefa: ${error.message}`;
+      }
+    });
+
+    // Carrega as tarefas quando a página abrir
+    carregarTarefas();
   </script>
 </body>
 </html>
